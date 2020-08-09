@@ -12,6 +12,15 @@ class Book(models.Model):
     class Meta:
         verbose_name = verbose_name_plural = '图书'
 
+
+class RolePermlist(models.Model):
+    group = models.SmallIntegerField(verbose_name='组id',null=True,blank=True)
+    permissions = models.ManyToManyField(Permission,verbose_name='权限列表',null=True,blank=True)
+
+
+    class Meta:
+        verbose_name = verbose_name_plural = '角色'
+
 class Role(models.Model):
 
     name = models.CharField(max_length=120,verbose_name='角色名',default='管理员',unique=True)
@@ -61,3 +70,6 @@ class MenuChild(models.Model):
 
     def __str__(self):
         return self.name
+
+
+
