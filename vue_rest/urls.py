@@ -44,11 +44,12 @@ urlpatterns = [
     path('api/user/rolelist/', roleList.as_view({**GET,**POST}), name='roleList'),
     path('api/user/role/<int:pk>/', roleList.as_view({**DEL,**RET,**PUT}), name='roledel'),
     path('api/user/roleperm/', roleGroupPermView.as_view({**GET,}), name='roleperm'),
-    path('api/user/roleperm/<int:pk>/', roleGroupPermView.as_view(PUT), name='roleperm_update'),
-    path('api-token-auth/', obtain_jwt_token),
-    path('api-token-refresh/', refresh_jwt_token),
+    path('api/user/roleperm/<int:pk>/', roleGroupPermView.as_view({**PUT,**RET,**POST}), name='roleperm_update'),
     path('api/perm/',PermissonView.as_view(ALL)),
     path('api/group/', groupList.as_view(GET)),
+    path('api/groupPerm/', groupPermList.as_view(GET)),
+    path('api-token-auth/', obtain_jwt_token),
+    path('api-token-refresh/', refresh_jwt_token),
 
 ]
 

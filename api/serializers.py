@@ -130,6 +130,8 @@ class PermBaseSerializer(ModelSerializer):
         model = Permission
         fields = ('id','name')
 
+
+
 class RoleGroupPermSerializer(ModelSerializer):
     '''展示角色下所有分组权限'''
     # groups = GroupSerializer(many=True,read_only=True)
@@ -144,6 +146,16 @@ class RoleGroupPermSerializer(ModelSerializer):
             k['permissions'] = [PermBaseSerializer(i).data for i in j]
         return values
 
+
     class Meta:
         fields = ('id','name','info','groups',)
         model = models.Role
+
+
+class groupPermSerializer(ModelSerializer):
+
+    class Meta:
+        fields = ('id','name','permissions')
+        model = Group
+        depth = 1
+

@@ -21,7 +21,12 @@ def record(job_names=None):
         return _func
     return hander
 
-
+def hander_error(err):
+    res = ''
+    for i in err:
+        if len(err[i])==1:
+            res += err[i][0]
+    return res
 
 ResDict = lambda code=200,msg='',data='':{'code':code,"data":data,'msg':msg}
 
