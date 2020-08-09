@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+from datetime import timedelta
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -142,5 +144,25 @@ AUTH_USER_MODEL = 'api.user'
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 100
+    'PAGE_SIZE': 5,
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        # 'utils.auth.tokenAuth',
+    ),
+
+}
+
+JWT_AUTH = {
+    "JWT_ALLOW_REFRESH":True,
+    "JWT_REFRESH_EXPIRATION_DELTA":timedelta(days=2),
+    "JWT_EXPIRATION_DELTA":timedelta(days=7),
+
+}
+
+JWT_WHITE_LIST = {
+    '/api/user/':'post',
+    '/api/code/':'get'
 }

@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group,Permission
 
 
 # Create your models here.
@@ -12,12 +12,31 @@ class Book(models.Model):
     class Meta:
         verbose_name = verbose_name_plural = '图书'
 
+class Role(models.Model):
+
+    name = models.CharField(max_length=120,verbose_name='角色名',default='管理员',unique=True)
+    groups = models.ManyToManyField(Group,verbose_name='分组列表',null=True,blank=True)
+    info = models.CharField(max_length=600,verbose_name='角色描述',default='')
+    permlist = models.ManyToManyField(Permission,verbose_name='权限列表',null=True,blank=True)
+    create_date = models.DateTimeField(auto_now_add=True,verbose_name='创建时间')
+
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = verbose_name_plural = '角色'
+        ordering= ['-create_date']
+
+
 class User(AbstractUser):
     telephone = models.CharField(max_length=20,verbose_name='手机号',default='18550774645')
+    role = models.ForeignKey('role',on_delete=models.CASCADE,verbose_name='用户角色',blank=True,null=True)
     def __str__(self):
         return self.username
 
     class Meta:
+        ordering = ['-date_joined']
         verbose_name = verbose_name_plural = '用户'
 
 class Menu(models.Model):

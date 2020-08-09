@@ -1,13 +1,15 @@
 from datetime import datetime
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate
 from django.http.response import HttpResponse
 from rest_framework.pagination import PageNumberPagination,LimitOffsetPagination
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.generics import GenericAPIView,ListAPIView
 from rest_framework.response import Response
-from api.models import Book, User,Menu,MenuChild
-from api.serializers import Book_Serializer,UserSerializer,MenuSerialiser
+from api.models import Book, User,Menu,Role
+from api.serializers import *
 from utils.gnerate_code import gen_capthca
-from utils.common import record,ResDict
+from utils.common import ResDict,get_token
 from django_redis import get_redis_connection
 from django_filters import rest_framework as filters
 import io,django_filters
@@ -21,30 +23,79 @@ class filterUser(django_filters.FilterSet):
 class LargeResultsSetPagination(LimitOffsetPagination):
     default_limit = 5
 
-@record()
-def generate_code(request):
-    code = request.GET.get('code_id')
-    con = get_redis_connection()
-    text,image = gen_capthca()
-    con.set(code,text,300)
-    fp = io.BytesIO()
-    image.save(fp,'png')
-    fp.seek(0)
-    response = HttpResponse(content=fp,content_type='application/x-plt')
-    return response
+class BaseViewSet(ModelViewSet):
+    def retrieve(self, request, *args, **kwargs):
+        resp = super().retrieve(request,*args,**kwargs)
+        return Response(ResDict(resp.status_code,data=resp.data))
 
-class UserLogin(ModelViewSet):
-    queryset = User.objects.all().prefetch_related('groups')
-    serializer_class = UserSerializer
-    pagination_class = LargeResultsSetPagination
-    filter_backends = (filters.DjangoFilterBackend,)
-    filterset_class = filterUser
+    def destroy(self,request,*args,**kwargs):
+        try:
+            resp = super().destroy(request,*args,**kwargs)
+        except Exception as e:
+            return  Response(ResDict(400,msg=str(e)))
+        else:
+            return Response(ResDict(200,msg='删除成功'))
 
     def list(self,request,*args,**kwargs):
+        try:
+            resp = super().list(request,*args,**kwargs)
+        except Exception as e:
+            return  Response(ResDict(400,msg=str(e)))
+        else:
+            return Response(ResDict(200,data=resp.data),status=resp.status_code)
 
-        resp = super().list(request,*args,**kwargs)
-        return Response(ResDict(200,data=resp.data),status=resp.status_code)
 
+
+class generateCode(APIView):
+    permission_classes = ()
+
+    def get(self,request):
+        code = request.query_params.get('code_id')
+        con = get_redis_connection()
+        text,image = gen_capthca()
+        con.set(code,text,300)
+        fp = io.BytesIO()
+        image.save(fp,'png')
+        fp.seek(0)
+        response = HttpResponse(content=fp,content_type='application/x-plt')
+        return response
+
+class roleList(BaseViewSet):
+    queryset =  Role.objects.all()
+    serializer_class = roleSerializer
+    pagination_class = LargeResultsSetPagination
+    def create(self, request, *args, **kwargs):
+        request.data.update(groups=request.data.get('checkList',None))
+        obj = roleSerializer(data=request.data)
+        if obj.is_valid():
+            obj.save()
+            return Response(ResDict(200,data=obj.data))
+        else:
+            return Response(ResDict(400,msg=hander_error(obj.errors)))
+
+    def update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        serializer = self.serializer_class(instance=obj,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(ResDict(200,msg='修改成功'))
+        else:
+            return Response(ResDict(400,msg=hander_error(serializer.errors)))
+
+
+
+
+def hander_error(err):
+    res = ''
+    for i in err:
+        if len(err[i])==1:
+            res += err[i][0]
+    return res
+
+
+
+class UserLogin(ModelViewSet):
+    permission_classes = ()
 
     def login_user(self,request,*args,**kwargs):
         con = get_redis_connection()
@@ -52,7 +103,6 @@ class UserLogin(ModelViewSet):
         code = request.data.get('code',None)
         username = request.data.get('username',None)
         pwd = request.data.get('pwd',None)
-        print(request.data)
         if not code:
             return Response(ResDict(400,'验证码缺失'))
 
@@ -70,12 +120,53 @@ class UserLogin(ModelViewSet):
 
         user = authenticate(request,username=username,password=pwd)
         if user is not None:
-            login(request,user)
+            # login(request,user)
+            token = get_token(user)
             con.delete(code_id)
-            return Response(ResDict(200,'登录成功',{'username':user.username}))
+            return Response(ResDict(200,'登录成功',data={'username':user.username,'token':token}))
         else:
             return Response(ResDict(400,'用户名或密码错误'))
 
+
+
+
+class UserInfo(BaseViewSet):
+    queryset = User.objects.all().prefetch_related('groups')
+    serializer_class = UserSerializer
+    pagination_class = LargeResultsSetPagination
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = filterUser
+
+    def create(self,request,*args,**kwargs):
+        pwd1 = request.data.get('password')
+        pwd2 = request.data.get('password2')
+        if pwd1 != pwd2:
+            return Response(ResDict(400,msg='两次密码不一致'))
+
+        request.data['role'] = request.data.pop('group',None)
+        serializer = userCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                serializer.save()
+            except Exception as e:
+                return Response(ResDict(400, msg='数据库错误'))
+            return Response(ResDict(200,data=serializer.data))
+        else:
+            err_message = hander_error(serializer.errors)
+            return Response(ResDict(400,msg=err_message))
+
+    def update(self,request,*args,**kwargs):
+        try:
+            if 'group' in request.data:
+                request.data['role'] = request.data.pop('group')
+            resp = User.objects.filter(id=kwargs['pk']).update(**request.data)
+        except Exception as e:
+            return Response(ResDict(400,msg=str(e)))
+        else:
+            if resp == 1:
+                return Response(ResDict(200,msg='更新成功'))
+            else:
+                return Response(ResDict(400,msg='更新失败'))
 
 class MenuView(ModelViewSet):
     queryset = Menu.objects.all()
@@ -86,6 +177,43 @@ class MenuView(ModelViewSet):
         resp = super().list(request,*args,**kwargs)
         return Response(ResDict(200,data=resp.data))
 
+
+class PermissonView(BaseViewSet):
+    queryset = Permission.objects.all()
+    serializer_class = PermSerializer
+
+
+class roleGroupPermView(BaseViewSet):
+    queryset = Role.objects.all().prefetch_related('groups')
+    serializer_class = RoleGroupPermSerializer
+
+
+    def get_group_perm_list(self,obj):
+        resp = obj.groups.all()
+        values = resp.values()
+        obj_perm = set(obj.permlist.all())
+        for i,k in zip(resp,values):
+            j = obj_perm & set(i.permissions.all())
+            k['permissions'] = [PermBaseSerializer(i).data for i in j]
+        return values
+
+    def update(self, request, *args, **kwargs):
+        group_id = request.data.get('group')
+        perm_id = request.data.get('perm')
+        role = self.get_object()
+        if group_id and perm_id:
+            role.permlist.remove(Permission.objects.get(id=perm_id))
+        elif group_id:
+            role.groups.remove(Group.objects.get(id=group_id))
+
+        resp = self.get_group_perm_list(role)
+        return Response(ResDict(200,data=resp))
+
+
+class groupList(BaseViewSet):
+    queryset = Group.objects.all()
+    serializer_class = GroupBaseSerializer
+    pagination_class = None
 
 
 class Book(ModelViewSet):
