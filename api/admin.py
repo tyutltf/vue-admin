@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin,Group,GroupAdmin
-from api.models import Book,User,Menu,MenuChild,Role
+from api.models import *
 from django.utils.translation import gettext, gettext_lazy as _
 
 # Register your models here.
@@ -33,11 +33,6 @@ class showMenu(admin.ModelAdmin):
 class showRole(admin.ModelAdmin):
     list_display = ('id','name','create_date')
     list_editable = ('name',)
-
-    # def save_form(self, request, form, change):
-    #     obj = super(showRole, self).save_form(request,form,change)
-    #     print(obj.groups.all())
-    #     return obj
 
 
 

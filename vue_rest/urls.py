@@ -18,6 +18,7 @@ from django.urls import path,include,re_path
 from rest_framework.routers import DefaultRouter,SimpleRouter
 from rest_framework_jwt.views import obtain_jwt_token, refresh_jwt_token
 from api.views import *
+from goods.views import GoodsList
 from api.views import generateCode
 
 
@@ -27,9 +28,7 @@ RET = {'get':'retrieve'}
 POST = {'post':'create'}
 PUT = {'put':'update'}
 DEL = {'delete':'destroy'}
-router = DefaultRouter()
-router.register('/v1',roleList)
-print(router.urls)
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -52,7 +51,10 @@ urlpatterns = [
     path('api-token-refresh/', refresh_jwt_token),
 
 ]
-
+goodRouter = [
+    path('goods/category',GoodsList.as_view(GET)),
+]
+urlpatterns += goodRouter
 # route = SimpleRouter(trailing_slash=False)
 # route.register(r'book',Book,)
 # urlpatterns += route.urls
