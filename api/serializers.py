@@ -6,6 +6,7 @@ from django.contrib.auth.models import Permission,Group
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer,Serializer
 from api import models
+import pandas as pd
 
 
 
@@ -75,29 +76,17 @@ class MenuSerialiser(ModelSerializer):
         model = models.Menu
         depth = 1
 
+
 class roleSerializer(ModelSerializer):
     '''角色列表'''
+    groups = serializers.SerializerMethodField('get_groups')
 
-    def create(self, validated_data):
-        '''添加角色权限'''
-        obj = super(roleSerializer, self).create(validated_data)
-        for group in obj.groups.all():
-            obj.permlist.add(*group.permissions.all())
-        return obj
-
-    def update(self, instance, validated_data):
-        '''更新用户权限'''
-        obj = super(roleSerializer, self).update(instance,validated_data)
-        obj.permlist.clear()
-        for group in obj.groups.all():
-            obj.permlist.add(*group.permissions.all())
-        return obj
-
+    def get_groups(self,obj):
+        return list(set(obj.permlist.values_list('group__id',flat=True)))
 
     class Meta:
         fields = ('id','name','info','groups')
         model = models.Role
-
 
 
 class PermSerializer(ModelSerializer):
@@ -114,42 +103,6 @@ class GroupBaseSerializer(ModelSerializer):
         fields = ('id','name')
         model = Group
 
-class GroupSerializer(GroupBaseSerializer):
-    # permissions = serializers.SerializerMethodField('get_perm')
-    #
-    # def get_perm(self,obj):
-    #     return obj.permissions.all().values('id','name')
-
-    class Meta:
-        # fields = ('id','name','permissions')
-        fields = ('id','name')
-        model = Group
-
-class PermBaseSerializer(ModelSerializer):
-    class Meta:
-        model = Permission
-        fields = ('id','name')
-
-
-
-class RoleGroupPermSerializer(ModelSerializer):
-    '''展示角色下所有分组权限'''
-    # groups = GroupSerializer(many=True,read_only=True)
-    # permlist = permListSerializer(many=True,read_only=True)
-    groups = serializers.SerializerMethodField('get_group_perm_list')
-    def get_group_perm_list(self,obj):
-        resp = obj.groups.all()
-        values = resp.values()
-        obj_perm = set(obj.permlist.all())
-        for i,k in zip(resp,values):
-            j = obj_perm & set(i.permissions.all())
-            k['permissions'] = [PermBaseSerializer(i).data for i in j]
-        return values
-
-
-    class Meta:
-        fields = ('id','name','info','groups',)
-        model = models.Role
 
 
 class groupPermSerializer(ModelSerializer):

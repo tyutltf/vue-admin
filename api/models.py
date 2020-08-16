@@ -24,7 +24,6 @@ class RolePermlist(models.Model):
 class Role(models.Model):
 
     name = models.CharField(max_length=120,verbose_name='角色名',default='管理员',unique=True)
-    groups = models.ManyToManyField(Group,verbose_name='分组列表',null=True,blank=True)
     info = models.CharField(max_length=600,verbose_name='角色描述',default='')
     permlist = models.ManyToManyField(Permission,verbose_name='权限列表',null=True,blank=True)
     create_date = models.DateTimeField(auto_now_add=True,verbose_name='创建时间')

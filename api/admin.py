@@ -27,8 +27,8 @@ class groupList(GroupAdmin):
     list_editable = ('name',)
 
 class showMenu(admin.ModelAdmin):
-    list_display = ('id','name')
-    list_editable = ('name',)
+    list_display = ('id','name','url','menu')
+    list_editable = ('name','url','menu')
 
 class showRole(admin.ModelAdmin):
     list_display = ('id','name','create_date')
@@ -41,5 +41,5 @@ admin.site.register(Group,groupList)
 admin.site.register(User,showUser)
 admin.site.register(Book)
 admin.site.register(Role,showRole)
-admin.site.register(Menu,showMenu)
+admin.site.register(Menu)
 admin.site.register(MenuChild,showMenu)

@@ -4,12 +4,13 @@ from django.http.response import HttpResponse
 from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+from django.db import connection, transaction
 from rest_framework.generics import GenericAPIView, ListAPIView
 from rest_framework.response import Response
 from api.models import Book, User, Menu, Role
 from api.serializers import *
 from utils.gnerate_code import gen_capthca
-from utils.common import ResDict, get_token, hander_error
+from utils.common import ResDict, get_token, hander_error, BaseViewSet
 from django_redis import get_redis_connection
 from django_filters import rest_framework as filters
 import io, django_filters
@@ -25,28 +26,6 @@ class filterUser(django_filters.FilterSet):
 
 class LargeResultsSetPagination(LimitOffsetPagination):
     default_limit = 5
-
-
-class BaseViewSet(ModelViewSet):
-    def retrieve(self, request, *args, **kwargs):
-        resp = super().retrieve(request, *args, **kwargs)
-        return Response(ResDict(resp.status_code, data=resp.data))
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            resp = super().destroy(request, *args, **kwargs)
-        except Exception as e:
-            return Response(ResDict(400, msg=str(e)))
-        else:
-            return Response(ResDict(200, msg='删除成功'))
-
-    def list(self, request, *args, **kwargs):
-        try:
-            resp = super().list(request, *args, **kwargs)
-        except Exception as e:
-            return Response(ResDict(400, msg=str(e)))
-        else:
-            return Response(ResDict(200, data=resp.data), status=resp.status_code)
 
 
 class generateCode(APIView):
@@ -68,24 +47,6 @@ class roleList(BaseViewSet):
     queryset = Role.objects.all()
     serializer_class = roleSerializer
     pagination_class = LargeResultsSetPagination
-
-    def create(self, request, *args, **kwargs):
-        request.data.update(groups=request.data.get('checkList', None))
-        obj = roleSerializer(data=request.data)
-        if obj.is_valid():
-            obj.save()
-            return Response(ResDict(200, data=obj.data))
-        else:
-            return Response(ResDict(400, msg=hander_error(obj.errors)))
-
-    def update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        serializer = self.serializer_class(instance=obj, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(ResDict(200, msg='修改成功'))
-        else:
-            return Response(ResDict(400, msg=hander_error(serializer.errors)))
 
 
 class UserLogin(ModelViewSet):
@@ -160,64 +121,85 @@ class UserInfo(BaseViewSet):
                 return Response(ResDict(400, msg='更新失败'))
 
 
-class MenuView(ModelViewSet):
+class MenuView(BaseViewSet):
     queryset = Menu.objects.all()
     serializer_class = MenuSerialiser
     pagination_class = None
 
-    def list(self, request, *args, **kwargs):
-        resp = super().list(request, *args, **kwargs)
-        return Response(ResDict(200, data=resp.data))
-
 
 class PermissonView(BaseViewSet):
-    queryset = Permission.objects.all()
+    queryset = Permission.objects.all().prefetch_related('content_type')
     serializer_class = PermSerializer
 
 
 class roleGroupPermView(BaseViewSet):
-    queryset = Role.objects.all().prefetch_related('groups')
-    serializer_class = RoleGroupPermSerializer
+    queryset = Role.objects.all().prefetch_related('permlist')
+    pagination_class = None
 
-    def get_group_perm_list(self, obj):
-        resp = obj.groups.all()
-        values = resp.values()
-        obj_perm = set(obj.permlist.all())
-        for i, k in zip(resp, values):
-            j = obj_perm & set(i.permissions.all())
-            k['permissions'] = [PermBaseSerializer(i).data for i in j]
-        return values
+    def get_group_perm_list(self):
+        sql = '''
+                select role.id as role_id,role.name as role_name,role.info,
+                       t.group_id,t.group_name,t.perm_id,t.name
+                from api_role as role
+                         left join (
+                    select
+                           arp.role_id,
+                           agp.group_id,
+                            ag.name as group_name,
+                            ap.id   as perm_id,
+                            ap.name
+                     from auth_permission ap
+                              inner join api_role_permlist arp on ap.id = arp.permission_id
+                              left join auth_group_permissions agp
+                                        on agp.permission_id = ap.id
+                              left join auth_group ag on agp.group_id = ag.id
+                    ) as t
+                on role.id = t.role_id
+            '''
+        df = pd.read_sql(sql, connection)
+        resp = []
+        for i, k in df.groupby(['role_id', 'role_name', 'info']):
+            role = {'id': i[0], 'name': i[1], 'info': i[2], 'groups': []}
+            for ii, kk in k[['group_id', 'group_name', 'perm_id', 'name']].groupby(['group_id', 'group_name']):
+                kk = kk.rename(columns={'perm_id': 'id'})
+                groups = {'id': ii[0], 'name': ii[1], 'permissions': kk[['id', 'name']].to_dict('records')}
+                role['groups'].append(groups)
+            resp.append(role)
+        return resp
 
     def update(self, request, *args, **kwargs):
+        '''展开权限修改'''
         group_id = request.data.get('group')
         perm_id = request.data.get('perm')
         role = self.get_object()
         if group_id and perm_id:
             role.permlist.remove(Permission.objects.get(id=perm_id))
         elif group_id:
-            role.groups.remove(Group.objects.get(id=group_id))
+            group = Group.objects.get(id=group_id)
+            role.permlist.remove(*group.permissions.all())
 
-        resp = self.get_group_perm_list(role)
-        return Response(ResDict(200, data=resp))
+        return Response(ResDict(200, msg='修改成功'))
 
     def create(self, request, *args, **kwargs):
+        '''树形权限修改'''
         role = self.get_object()
         perm_list = request.data.get('permlist', None)
         if perm_list is not None:
             role.permlist.clear()
             role.permlist.add(*Permission.objects.filter(id__in=perm_list))
-            return Response(ResDict(200,msg='更新成功'))
+            return Response(ResDict(200, msg='更新成功'))
         else:
-            return Response(ResDict(400,msg='更新失败,权限id缺失'))
+            return Response(ResDict(400, msg='更新失败,权限id缺失'))
 
+    def list(self, request, *args, **kwargs):
+        resp = self.get_group_perm_list()
+        return Response(ResDict(200, data=resp))
 
 
 class groupList(BaseViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupBaseSerializer
     pagination_class = None
-
-
 
 
 class groupPermList(BaseViewSet):
@@ -227,12 +209,11 @@ class groupPermList(BaseViewSet):
 
     def list(self, request, *args, **kwargs):
         role_id = request.query_params.get('role_id')
-        resp = super(groupPermList, self).list(request,*args,**kwargs)
+        resp = super(groupPermList, self).list(request, *args, **kwargs)
         role = Role.objects.get(id=role_id)
-        checklist = role.permlist.values_list('id',flat=True)
-        resp.data['data'] = {'checklist':checklist,'results':resp.data['data']}
+        checklist = list(role.permlist.values_list('id', flat=True))
+        resp.data['data'] = {'checklist': checklist, 'results': resp.data['data']}
         return resp
-
 
 
 class Book(ModelViewSet):

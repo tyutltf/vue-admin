@@ -167,3 +167,4 @@ JWT_WHITE_LIST = {
     '/api/user/':'post',
     '/api/code/':'get'
 }
+DEFAULT_CHARSET = 'UTF-8'
