@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser, Group,Permission
 # Create your models here.
 class Book(models.Model):
     name = models.CharField(max_length=300,verbose_name='图书',unique=True)
+    title = models.CharField(max_length=100,null=True,blank=True)
     create_date = models.DateTimeField(auto_now=True)
 
     def __str__(self):

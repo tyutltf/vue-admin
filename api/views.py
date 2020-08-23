@@ -5,7 +5,7 @@ from rest_framework.pagination import PageNumberPagination, LimitOffsetPaginatio
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.db import connection, transaction
-from rest_framework.generics import GenericAPIView, ListAPIView
+from django.conf import settings
 from rest_framework.response import Response
 from api.models import Book, User, Menu, Role
 from api.serializers import *
@@ -77,7 +77,9 @@ class UserLogin(ModelViewSet):
             # login(request,user)
             token = get_token(user)
             con.delete(code_id)
-            return Response(ResDict(200, '登录成功', data={'username': user.username, 'token': token}))
+            response = Response(ResDict(200, '登录成功', data={'username': user.username, 'token': token,
+                                                           'expires':settings.JWT_EXPIRATION_DELTA*1000}))
+            return response
         else:
             return Response(ResDict(400, '用户名或密码错误'))
 
@@ -119,6 +121,8 @@ class UserInfo(BaseViewSet):
                 return Response(ResDict(200, msg='更新成功'))
             else:
                 return Response(ResDict(400, msg='更新失败'))
+
+
 
 
 class MenuView(BaseViewSet):

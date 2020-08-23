@@ -1,10 +1,14 @@
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+import django_filters
+from django_filters import rest_framework as filter
+from goods.serializers import GoodsImageSerializer, GoodsProductCreate
 from utils.common import BaseViewSet, ResDict, hander_error
 from goods.serializers import GoodsOneSerializer, \
     GoodsBaseSerializer, GoodsCreateSerializer, \
-    GoodsInfoSerializer, GoodsTagSerializer, GoodsInfoCreateSerializer, GoodsInfoEditSerializer
+    GoodsInfoSerializer, GoodsTagSerializer, GoodsInfoCreateSerializer, GoodsInfoEditSerializer,GoodsProductSer
+
 from goods.models import *
 
 
@@ -107,3 +111,40 @@ class GoodsInfoList(BaseViewSet):
 class GoodsTag(BaseViewSet):
     queryset = GoodsInfoTag.objects.all()
     serializer_class = GoodsTagSerializer
+
+
+class filterGoods(django_filters.FilterSet):
+    goods_name = django_filters.CharFilter(lookup_expr='icontains')
+
+    class Meta:
+        model = GoodsProductList
+        fields = ['goods_name',]
+
+class GoodsProductList(BaseViewSet):
+    queryset = GoodsProductList.objects.all()
+    serializer_class = GoodsProductSer
+    filter_backends = (filter.DjangoFilterBackend,)
+    filterset_class = filterGoods
+
+    def create(self, request, *args,serializer=None, **kwargs):
+        print(request.data)
+        return super(GoodsProductList, self).create(request,serializer=GoodsProductCreate,*args,**kwargs)
+
+class GoodsImageUpload(BaseViewSet):
+    queryset = GoodsImage.objects.all()
+    serializer_class = GoodsImageSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        img = GoodsImage.objects.filter(id=kwargs['pk']).first()
+        if not img:
+            return Response(ResDict(400,msg='图片不存在'))
+        try:
+            img.image.delete()
+            img.delete()
+        except Exception as e:
+            return Response(ResDict(400,msg=str(e)))
+        else:
+            return Response(ResDict(200,msg='移除图片成功'))
+
+
+

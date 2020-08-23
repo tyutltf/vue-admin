@@ -58,3 +58,26 @@ class GoodsTagSerializer(ModelSerializer):
     class Meta:
         model = GoodsInfoTag
         fields = '__all__'
+
+
+class GoodsProductSer(ModelSerializer):
+
+    create_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S')
+    up_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S')
+
+    class Meta:
+        model = GoodsProductList
+        fields = ['id','goods_name','goods_price','goods_number','goods_weight','goods_state',
+                  'create_time', 'up_time', 'hot_mumber', 'is_promote']
+
+class GoodsProductCreate(ModelSerializer):
+
+    class Meta:
+        model = GoodsProductList
+        fields = '__all__'
+
+class GoodsImageSerializer(ModelSerializer):
+
+    class Meta:
+        fields = '__all__'
+        model = GoodsImage

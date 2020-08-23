@@ -1,0 +1,26 @@
+[ERROR][2020-08-21 15:29:28,724][middleProcess.py:35]None
+Traceback (most recent call last):
+  File "/home/tarena/my_env/v1/lib/python3.6/site-packages/django/core/handlers/base.py", line 179, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/tarena/my_env/v1/lib/python3.6/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/home/tarena/my_env/v1/lib/python3.6/site-packages/django/views/generic/base.py", line 73, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/tarena/my_env/v1/lib/python3.6/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/tarena/my_env/v1/lib/python3.6/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/tarena/my_env/v1/lib/python3.6/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/home/tarena/my_env/v1/lib/python3.6/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/home/tarena/work_dir/work_dir/vue-project/vue_rest/api/views.py", line 43, in get
+    1/0
+ZeroDivisionError: division by zero
+[ERROR][2020-08-21 16:07:50,851][middleProcess.py:35]None
+Traceback (most recent call last):
+  File "/home/tarena/my_env/v1/lib/python3.6/site-packages/django/core/handlers/base.py", line 179, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/tarena/my_env/v1/lib/python3.6/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("Directory indexes are not allowed here."))
+django.http.response.Http404: 这里不允许目录索引

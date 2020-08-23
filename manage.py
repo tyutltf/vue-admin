@@ -5,7 +5,8 @@ import sys
 
 
 def main():
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'vue_rest.settings')
+    env = os.getenv('PYENV', 'dev')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', f'settings.{env}')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

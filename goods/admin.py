@@ -22,9 +22,19 @@ class showGoodsInfoTag(admin.ModelAdmin):
     list_display = ('id','name','goodsInfo')
     list_editable = ('name','goodsInfo')
 
+class showGoodsList(admin.ModelAdmin):
+    list_display = ('id' ,'goods_name','goods_price','goods_number','goods_weight','goods_state',
+                     'hot_mumber','is_promote')
+    list_editable = ('goods_name','goods_price','goods_number','goods_weight','goods_state',
+                     'hot_mumber','is_promote')
+    list_per_page = 12
+
+
+admin.site.register(GoodsImage)
 admin.site.register(GoodsLevelOne,showGoodsLevelOne)
 admin.site.register(GoodsLevelTwo,showGoodsLevelTwo)
 admin.site.register(GoodsLevelThree,showGoodsLevelThree)
 admin.site.register(GoodSInfo,showGoodsInfo)
 admin.site.register(GoodsInfoTag,showGoodsInfoTag)
+admin.site.register(GoodsProductList,showGoodsList)
 

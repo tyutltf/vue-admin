@@ -8,21 +8,18 @@ from rest_framework.serializers import ModelSerializer,Serializer
 from api import models
 import pandas as pd
 
+from goods.models import GoodsImage
 
 
 class Book_Serializer(ModelSerializer):
-    # create_time = serializers.SerializerMethodField()
-    # date = serializers.SerializerMethodField('get_create_date')
-    # def get_create_time(self,obj):
-    #     print(obj)
-    #     return obj
+
     uname = serializers.CharField(source='name',)
     date = serializers.DateTimeField(source='create_date',format='%Y-%m-%d %H:%M%S')
 
 
     class Meta:
         model = models.Book
-        fields = ['id','uname','date']
+        fields = ['id','uname','date','title']
 
 
 class UserSerializer(ModelSerializer):

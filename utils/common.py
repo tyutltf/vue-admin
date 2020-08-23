@@ -1,5 +1,4 @@
-import time
-
+import time,logging
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_jwt.settings import api_settings
@@ -82,4 +81,10 @@ def hander_error(err):
     return str(list(err.keys())[0]) + ':' + res
 
 ResDict = lambda code=200,msg='',data='':{'code':code,"data":data,'msg':msg}
+
+
+class Logger():
+    def __init__(self):
+        self.info = logging.getLogger('info')
+        self.error = logging.getLogger('error')
 
