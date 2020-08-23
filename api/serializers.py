@@ -1,8 +1,7 @@
 import traceback
-from itertools import chain
-
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Permission,Group
+from utils.common import filter_username
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer,Serializer
 from api import models
@@ -42,9 +41,9 @@ class userCreateSerializer(ModelSerializer):
         validated_data['password'] = make_password(validated_data['password'])
         return super().create(validated_data)
 
-    # def validate(self, attrs):
-    #     if attrs['password'].__len__()>5:
-    #         raise serializers.ValidationError('密码长度过段')
+    def validate(self, attrs):
+        attrs['username'] = filter_username(attrs['username'])
+        return attrs
 
     class Meta:
         fields = '__all__'
@@ -80,6 +79,10 @@ class roleSerializer(ModelSerializer):
 
     def get_groups(self,obj):
         return list(set(obj.permlist.values_list('group__id',flat=True)))
+
+    def validate(self, attrs):
+        attrs['name'] = filter_username(attrs['name'])
+        return attrs
 
     class Meta:
         fields = ('id','name','info','groups')

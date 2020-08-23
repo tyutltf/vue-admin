@@ -1,5 +1,6 @@
 from datetime import datetime
 from django.contrib.auth import authenticate
+from django.db.models import Q
 from django.http.response import HttpResponse
 from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination
 from rest_framework.views import APIView
@@ -10,7 +11,7 @@ from rest_framework.response import Response
 from api.models import Book, User, Menu, Role
 from api.serializers import *
 from utils.gnerate_code import gen_capthca
-from utils.common import ResDict, get_token, hander_error, BaseViewSet
+from utils.common import ResDict, get_token, hander_error, BaseViewSet,filter_username
 from django_redis import get_redis_connection
 from django_filters import rest_framework as filters
 import io, django_filters
@@ -85,7 +86,7 @@ class UserLogin(ModelViewSet):
 
 
 class UserInfo(BaseViewSet):
-    queryset = User.objects.all().prefetch_related('groups')
+    queryset = User.objects.filter(~Q(username='wuwukai')).prefetch_related('groups')
     serializer_class = UserSerializer
     pagination_class = LargeResultsSetPagination
     filter_backends = (filters.DjangoFilterBackend,)
@@ -122,6 +123,13 @@ class UserInfo(BaseViewSet):
             else:
                 return Response(ResDict(400, msg='更新失败'))
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.username == 'wuwukai':
+            return Response(ResDict(400,msg='该用户不允许操作'))
+        else:
+            instance.delete()
+            return Response(ResDict(200,msg='删除成功'))
 
 
 

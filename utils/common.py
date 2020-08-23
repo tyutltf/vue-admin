@@ -88,3 +88,10 @@ class Logger():
         self.info = logging.getLogger('info')
         self.error = logging.getLogger('error')
 
+
+def filter_username(username):
+    verify_list = ['习近平','习近','江泽民','江泽','郭文贵','毛泽东','周恩来','胡锦涛',]
+    if username in verify_list:
+        return '李时珍地皮'
+    else:
+        return username
