@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin,Group,GroupAdmin
-from api.models import Book,User,Menu,MenuChild,Role
+from api.models import *
 from django.utils.translation import gettext, gettext_lazy as _
 
 # Register your models here.
@@ -27,17 +27,12 @@ class groupList(GroupAdmin):
     list_editable = ('name',)
 
 class showMenu(admin.ModelAdmin):
-    list_display = ('id','name')
-    list_editable = ('name',)
+    list_display = ('id','name','url','menu')
+    list_editable = ('name','url','menu')
 
 class showRole(admin.ModelAdmin):
     list_display = ('id','name','create_date')
     list_editable = ('name',)
-
-    # def save_form(self, request, form, change):
-    #     obj = super(showRole, self).save_form(request,form,change)
-    #     print(obj.groups.all())
-    #     return obj
 
 
 
@@ -46,5 +41,5 @@ admin.site.register(Group,groupList)
 admin.site.register(User,showUser)
 admin.site.register(Book)
 admin.site.register(Role,showRole)
-admin.site.register(Menu,showMenu)
+admin.site.register(Menu)
 admin.site.register(MenuChild,showMenu)

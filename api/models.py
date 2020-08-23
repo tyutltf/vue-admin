@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser, Group,Permission
 # Create your models here.
 class Book(models.Model):
     name = models.CharField(max_length=300,verbose_name='图书',unique=True)
+    title = models.CharField(max_length=100,null=True,blank=True)
     create_date = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -24,7 +25,6 @@ class RolePermlist(models.Model):
 class Role(models.Model):
 
     name = models.CharField(max_length=120,verbose_name='角色名',default='管理员',unique=True)
-    groups = models.ManyToManyField(Group,verbose_name='分组列表',null=True,blank=True)
     info = models.CharField(max_length=600,verbose_name='角色描述',default='')
     permlist = models.ManyToManyField(Permission,verbose_name='权限列表',null=True,blank=True)
     create_date = models.DateTimeField(auto_now_add=True,verbose_name='创建时间')
@@ -70,6 +70,4 @@ class MenuChild(models.Model):
 
     def __str__(self):
         return self.name
-
-
 
